@@ -64,15 +64,6 @@ void setup() {
 }
  
 void loop() {
-  char battery[uno.get_bufsize()];
-  snprintf(battery, uno.get_bufsize(), "%s", uno.get_voltage(BATT, 3));
-
-  char temp_intern[uno.get_bufsize()];
-  snprintf(temp_intern, uno.get_bufsize(), "%s", uno.get_temp(LM35, false));
-
-  char temp_extern[uno.get_bufsize()];
-  snprintf(temp_extern, uno.get_bufsize(), "%s", uno.get_temp(TMP36, true));
-
   // start filming
   if (flycam.mode() == flycam.MODE_CAM && !flycam.is_recording())
     flycam.record();
@@ -86,10 +77,23 @@ void loop() {
     flycam.record();
     flycam.set_mode(flycam.MODE_CAM);
   }
+
+  // get main battery voltage
+  char battery[uno.get_bufsize()];
+  snprintf(battery, uno.get_bufsize(), "%s", uno.get_voltage(BATT, 3));
+
+  // get payload temperature
+  char temp_intern[uno.get_bufsize()];
+  snprintf(temp_intern, uno.get_bufsize(), "%s", uno.get_temp(LM35, false));
+
+  // get external temperature
+  char temp_extern[uno.get_bufsize()];
+  snprintf(temp_extern, uno.get_bufsize(), "%s", uno.get_temp(TMP36, true));
+
   
-  // $$CALLSIGN,sentence_id,(time,latitude,longitude,altitude,fix,speed,ascentrate,satellites),
+  // $$callsign,sentence_id,(time,latitude,longitude,altitude,fix,speed,ascentrate,satellites),
   //      battery,temperature_internal,temperature_external,gsm_signal,gsm_battery,cam_record_time,cam_pics*CHECKSUM\n
-  snprintf(data, DATASIZE, "$$jnoss1,%d,%s,%s,%s,%s,%s,%s", s_id, gps.get_info(), battery, temp_intern, temp_extern, gsm.get_signal(), gsm.get_battery(), flycam.total_record_time(), flycam.total_pics());
+  snprintf(data, DATASIZE, "$$jnoss1,%d,%s,%s,%s,%s,%s,%s,%d,%d", s_id, gps.get_info(), battery, temp_intern, temp_extern, gsm.get_signal(), gsm.get_battery(), flycam.total_record_time(), flycam.total_pics());
 
   // First log to micro sd, then sms and final rtty
   File flight_data = SD.open("flight.txt", FILE_WRITE);
