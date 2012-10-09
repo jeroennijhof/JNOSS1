@@ -1,4 +1,4 @@
-/* jnoss1.ino - Main Arduino file for HAB project JNOSS1
+/* JNOSS1.ino - Main Arduino file for HAB project JNOSS1
  * 
  * Copyright (C) 2012, Jeroen Nijhof <jeroen@jeroennijhof.nl>
  *
@@ -29,10 +29,12 @@
 
 #include <SoftwareSerial.h>
 #include <SD.h>
+#include <Servo.h>
 #include "rtty.h"
 #include "gsm.h"
 #include "gps.h"
 #include "uno.h"
+#include "flycam.h"
  
 #define DATASIZE 256
 
@@ -43,6 +45,7 @@ RTTY rtty(NTX2);
 GSM gsm(GSMRX, GSMTX);
 GPS gps(GPSRX, GPSTX);
 UNO uno;
+FlyCam flycam(CAM);
  
 void setup() {                
   Serial.begin(9600);
@@ -57,7 +60,6 @@ void setup() {
     Serial.println("micro sd failed.");
   }
   Serial.println("micro sd initialized.");
-
   Serial.println("done.");
 }
  
@@ -71,10 +73,23 @@ void loop() {
   char temp_extern[uno.get_bufsize()];
   snprintf(temp_extern, uno.get_bufsize(), "%s", uno.get_temp(TMP36, true));
 
+  // start filming
+  if (flycam.mode() == flycam.MODE_CAM && !flycam.is_recording())
+    flycam.record();
+
+  // stop filming after 30 seconds and make pictures
+  if (flycam.is_recording() && flycam.record_time() > 60) {
+    flycam.record();
+    flycam.set_mode(flycam.MODE_PIC);
+    flycam.record();
+    delay(1000);
+    flycam.record();
+    flycam.set_mode(flycam.MODE_CAM);
+  }
   
   // $$CALLSIGN,sentence_id,(time,latitude,longitude,altitude,fix,speed,ascentrate,satellites),
-  //      battery,temperature_internal,temperature_external,gsm_signal,gsm_battery*CHECKSUM\n
-  snprintf(data, DATASIZE, "$$jnoss1,%d,%s,%s,%s,%s,%s,%s", s_id, gps.get_info(), battery, temp_intern, temp_extern, gsm.get_signal(), gsm.get_battery());
+  //      battery,temperature_internal,temperature_external,gsm_signal,gsm_battery,cam_record_time,cam_pics*CHECKSUM\n
+  snprintf(data, DATASIZE, "$$jnoss1,%d,%s,%s,%s,%s,%s,%s", s_id, gps.get_info(), battery, temp_intern, temp_extern, gsm.get_signal(), gsm.get_battery(), flycam.total_record_time(), flycam.total_pics());
 
   // First log to micro sd, then sms and final rtty
   File flight_data = SD.open("flight.txt", FILE_WRITE);
@@ -88,6 +103,8 @@ void loop() {
   //rtty.send(data);
 
   s_id++;
+  if (flycam.is_recording())
+    flycam.add_record_time(8);
   delay(2000);
 }
 
