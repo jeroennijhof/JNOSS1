@@ -18,30 +18,35 @@
 
 #include "rtty.h"
 
-int _pin = 0;
+uint8_t _pin = 0;
 
-RTTY::RTTY(int pin) {
+RTTY::RTTY(uint8_t pin) {
   pinMode(pin, OUTPUT);
   _pin = pin;
 }
 
-void RTTY::send(char *data) {
-  // Add chksum
-  unsigned int chksum = crc16_chksum(data);
-  char chksum_str[6];
-  sprintf(chksum_str, "*%04X\n", chksum);
-  strcat(data, chksum_str);
- 
+void RTTY::send(const char *data) {
   char c;
+  uint8_t i = 0;
+
   c = *data++;
   while (c != '\0') {
     send_byte(c);
     c = *data++;
   }
+  
+  // Send chksum
+  char chksum_str[6];
+  snprintf(chksum_str, 6, "*%04X\n", crc16_chksum(data));
+  c = chksum_str[i];
+  while (c != '\0') {
+    send_byte(c);
+    c = chksum_str[++i];
+  }
 } 
  
 void RTTY::send_byte(char c) {
-  int i;
+  uint8_t i;
  
   send_bit(0); // Start bit
  
@@ -58,7 +63,7 @@ void RTTY::send_byte(char c) {
   send_bit(1); // Stop bit
 }
  
-void RTTY::send_bit(int bit) {
+void RTTY::send_bit(uint8_t bit) {
   if (bit) {
     // high
     digitalWrite(_pin, HIGH);
@@ -74,9 +79,9 @@ void RTTY::send_bit(int bit) {
   //delayMicroseconds(12222); // 45 baud
 }
  
-uint16_t RTTY::crc16_chksum(char *str) {
+uint16_t RTTY::crc16_chksum(const char *str) {
   size_t i;
-  uint16_t crc;
+  static uint16_t crc;
   uint8_t c;
  
   crc = 0xFFFF;

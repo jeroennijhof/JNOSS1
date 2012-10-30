@@ -19,7 +19,7 @@
 #include "SoftwareSerial.h"
 #include "gps.h"
 
-GPS::GPS(int rx_pin, int tx_pin):SoftwareSerial(rx_pin, tx_pin) {
+GPS::GPS(uint8_t rx_pin, uint8_t tx_pin):SoftwareSerial(rx_pin, tx_pin) {
   begin(9600);
 }
 
@@ -42,7 +42,6 @@ void GPS::start() {
   send_ubx(set_nav5, sizeof(set_nav5)/sizeof(uint8_t));
   
   while (get_ubx_ack(set_nav5) != true) {
-    Serial.println("set_nav5 failed!");    
     delay(1000);
   }
   delay(1000);
@@ -51,7 +50,7 @@ void GPS::start() {
 char *GPS::get_info() {
   static char info[BUFSIZE] = "";
   char buffer[BUFSIZE] = "";
-  int idx = 0;
+  uint8_t idx = 0;
 
   if (!listen())
     flush();
@@ -74,26 +73,26 @@ char *GPS::get_info() {
    *    time,latitude,longitude,altitude,fix,speed,ascentrate,satellites
    */
   snprintf(info, 7, "%s", get_pubx_item(2, buffer));
-  strcat(info, ",");
-  strcat(info, get_pubx_item(3, buffer));
-  strcat(info, ",");
-  strcat(info, get_pubx_item(5, buffer));
-  strcat(info, ",");
-  strcat(info, get_pubx_item(7, buffer));
-  strcat(info, ",");
-  strcat(info, get_pubx_item(8, buffer));
-  strcat(info, ",");
-  strcat(info, get_pubx_item(11, buffer));
-  strcat(info, ",");
-  strcat(info, get_pubx_item(13, buffer));
-  strcat(info, ",");
-  strcat(info, get_pubx_item(18, buffer));
+  strncat(info, ",", 1);
+  strncat(info, get_pubx_item(3, buffer), 12);
+  strncat(info, ",", 1);
+  strncat(info, get_pubx_item(5, buffer), 12);
+  strncat(info, ",", 1);
+  strncat(info, get_pubx_item(7, buffer), 12);
+  strncat(info, ",", 1);
+  strncat(info, get_pubx_item(8, buffer), 2);
+  strncat(info, ",", 1);
+  strncat(info, get_pubx_item(11, buffer), 7);
+  strncat(info, ",", 1);
+  strncat(info, get_pubx_item(13, buffer), 7);
+  strncat(info, ",", 1);
+  strncat(info, get_pubx_item(18, buffer), 2);
 
   return info;
 }
 
 void GPS::send_ubx(uint8_t *msg, uint8_t len) {
-  for (int i = 0; i < len; i++)
+  for (uint8_t i = 0; i < len; i++)
     write(msg[i]);
   println();
 }
@@ -145,16 +144,16 @@ boolean GPS::get_ubx_ack(uint8_t *msg) {
   }
 }
 
-char *GPS::get_pubx_item(int itemnr, char *pubx) {
+char *GPS::get_pubx_item(uint8_t itemnr, char *pubx) {
   static char item[BUFSIZE] = "";
   char buffer[BUFSIZE] = "";
   char *ptr;
-  int x;
+  uint8_t x;
 
   snprintf(buffer, BUFSIZE, "%s", pubx);
   for (x = 0; x < itemnr; x++) {
     ptr = strstr(buffer, ",");
-    sprintf(buffer, "%s", ptr+1);
+    snprintf(buffer, BUFSIZE, "%s", ptr+1);
   }
   ptr = strstr(buffer, ",");
   snprintf(item, strlen(buffer)-strlen(ptr)+1, "%s", buffer);

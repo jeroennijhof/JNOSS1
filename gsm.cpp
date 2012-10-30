@@ -19,7 +19,7 @@
 #include "SoftwareSerial.h"
 #include "gsm.h"
 
-GSM::GSM(int rx_pin, int tx_pin):SoftwareSerial(rx_pin, tx_pin) {
+GSM::GSM(uint8_t rx_pin, uint8_t tx_pin):SoftwareSerial(rx_pin, tx_pin) {
   begin(9600);
 }
 
@@ -28,7 +28,7 @@ boolean GSM::send_sms(char *number, char *sms) {
   char c, l;
   long i, n;
   char output[BUFSIZE] = "";
-  int idx = 0;
+  uint8_t idx = 0;
  
   if (!listen())
     flush();
@@ -101,7 +101,7 @@ char *GSM::get_signal() {
   static char buffer[3] = "";
   char output[BUFSIZE] = "";
   char *ptr;
-  int idx = 0;
+  uint8_t idx = 0;
 
   if (!listen())
     flush();
@@ -132,7 +132,7 @@ char *GSM::get_battery() {
   static char buffer[6] = "";
   char output[BUFSIZE] = "";
   char *ptr;
-  int idx = 0;
+  uint8_t idx = 0;
 
   if (!listen())
     flush();
@@ -162,7 +162,7 @@ char *GSM::get_battery() {
 char *GSM::to_pdu(char *number) {
   static char pdu[BUFSIZE] = "";
   char _number[BUFSIZE] = "";
-  int x;
+  size_t x;
 
   if (strlen(number) & 1) {
     // number is odd so add a F

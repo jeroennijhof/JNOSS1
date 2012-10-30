@@ -17,69 +17,59 @@
  */
 
 #include "flycam.h"
- 
-Servo fcam;
 
-FlyCam::FlyCam(int pin) {
+FlyCam::FlyCam(): Servo() {
   MODE_CAM = 0;
   MODE_SER = 1;
   MODE_PIC = 2;
   _mode = 0;
   _recording = false;
   _record_time = 0; // in seconds
-  _total_record_time = 0; // in seconds
-  _total_pics = 0;
-  
-  fcam.attach(pin);
+  _pics = 0;
 }
 
-void FlyCam::set_mode(int mode) {
+void FlyCam::set_mode(uint8_t mode) {
   while (_mode != mode) {
-    fcam.write(180);
-    delay(3500);
-    fcam.write(0);
-    delay(500);
+    write(180);
+    delay(3800);
+    write(0);
+    delay(800);
     _mode++;
     if (_mode > MODE_PIC)
       _mode = 0;
   }
 }
 
-int FlyCam::mode() {
+uint8_t FlyCam::mode() {
   return _mode;
 }
 
 void FlyCam::record() {
-  fcam.write(180);
-  delay(500);
-  fcam.write(0);
-  delay(500);
+  write(180);
+  delay(800);
+  write(0);
+  delay(2800);
   if (_recording||_mode != MODE_CAM) {
     _recording = false;
-    _total_record_time += _record_time;
-    _record_time = 0;
-  } else
+  } else {
     _recording = true;
+  }
   if (_mode == MODE_PIC)
-    _total_pics++;
+    _pics++;
 }
 
 boolean FlyCam::is_recording() {
   return _recording;
 }
 
-void FlyCam::add_record_time(int seconds) {
+void FlyCam::add_record_time(uint8_t seconds) {
   _record_time += seconds;
 }
 
-int FlyCam::record_time() {
+uint16_t FlyCam::record_time() {
   return _record_time;
 }
 
-int FlyCam::total_record_time() {
-  return _total_record_time;
-}
-
-int FlyCam::total_pics() {
-  return _total_pics;
+uint16_t FlyCam::pics() {
+  return _pics;
 }

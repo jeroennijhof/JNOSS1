@@ -19,8 +19,8 @@
 #define GPSRX 3
 #define GPSTX 4
 #define NTX2 5
-#define GSMRX 6
-#define GSMTX 7
+#define GSMRX 7
+#define GSMTX 6
 #define MICROSD 8
 #define CAM 9
 #define TMP36 0
@@ -28,8 +28,8 @@
 #define BATT 2
 
 #include <SoftwareSerial.h>
-#include <SD.h>
 #include <Servo.h>
+#include <SDLogger.h>
 #include "rtty.h"
 #include "gsm.h"
 #include "gps.h"
@@ -39,76 +39,94 @@
 #define DATASIZE 256
 
 char data[DATASIZE];
-int s_id = 0;
+uint16_t s_id = 0;
 
+SDLogger sdlog;
 RTTY rtty(NTX2);
 GSM gsm(GSMRX, GSMTX);
 GPS gps(GPSRX, GPSTX);
 UNO uno;
-FlyCam flycam(CAM);
+FlyCam flycam;
  
 void setup() {                
   Serial.begin(9600);
-  Serial.println("JNOSS1 initializing...");
-
+  Serial.println("JNOSS1 initializing...press key");
+  while (!Serial.available()){}
+  Serial.println(freeRam());
+  
   gps.start();
   Serial.println("gps initialized.");
+  
+  flycam.attach(CAM);
+  Serial.println("flycam initialized.");
 
-  // needed for SPI to work
-  pinMode(10, OUTPUT);
-  if (!SD.begin(MICROSD)) {
-    Serial.println("micro sd failed.");
+  if (!sdlog.init()) {
+    Serial.println("SD initialization failed.");
+  } else {
+    Serial.println("SD initialized.");
   }
-  Serial.println("micro sd initialized.");
-  Serial.println("done.");
+  if (!sdlog.format()) {
+    Serial.println("Format failed.");
+  }
+  Serial.println("...done.");
 }
  
 void loop() {
-  // start filming
-  if (flycam.mode() == flycam.MODE_CAM && !flycam.is_recording())
-    flycam.record();
+  Serial.println(freeRam());
+  /* start filming */
+  if (flycam.mode() == flycam.MODE_CAM && !flycam.is_recording()) {
+    flycam.record(); // Start filming
+  }
 
-  // stop filming after 30 seconds and make pictures
-  if (flycam.is_recording() && flycam.record_time() > 60) {
-    flycam.record();
+  /* stop filming after 30 seconds and make pictures */
+  if (flycam.is_recording() && (s_id % 10) == 0) {
+    flycam.record(); // Stop filming
     flycam.set_mode(flycam.MODE_PIC);
-    flycam.record();
-    delay(1000);
-    flycam.record();
+    flycam.record(); // Take picture
+    flycam.record(); // Take another picture
     flycam.set_mode(flycam.MODE_CAM);
   }
 
-  // get main battery voltage
+  Serial.println(freeRam());
+  /* get main battery voltage */
   char battery[uno.get_bufsize()];
   snprintf(battery, uno.get_bufsize(), "%s", uno.get_voltage(BATT, 3));
 
-  // get payload temperature
+  /* get payload temperature */
   char temp_intern[uno.get_bufsize()];
   snprintf(temp_intern, uno.get_bufsize(), "%s", uno.get_temp(LM35, false));
 
-  // get external temperature
+  /* get external temperature */
   char temp_extern[uno.get_bufsize()];
   snprintf(temp_extern, uno.get_bufsize(), "%s", uno.get_temp(TMP36, true));
 
-  
-  // $$callsign,sentence_id,(time,latitude,longitude,altitude,fix,speed,ascentrate,satellites),
-  //      battery,temperature_internal,temperature_external,gsm_signal,gsm_battery,cam_record_time,cam_pics*CHECKSUM\n
-  snprintf(data, DATASIZE, "$$jnoss1,%d,%s,%s,%s,%s,%s,%s,%d,%d", s_id, gps.get_info(), battery, temp_intern, temp_extern, gsm.get_signal(), gsm.get_battery(), flycam.total_record_time(), flycam.total_pics());
+  Serial.println(freeRam());
+  /* $$callsign,sentence_id,(time,latitude,longitude,altitude,fix,speed,ascentrate,satellites),
+   *     battery,temperature_internal,temperature_external,gsm_signal,gsm_battery,cam_record_time,cam_pics*CHECKSUM\n
+   */
+  snprintf(data, DATASIZE, "$$jnoss1,%d,%s,%s,%s,%s,%s,%s,%d,%d", s_id, gps.get_info(), battery, temp_intern, temp_extern, gsm.get_signal(), gsm.get_battery(), flycam.record_time(), flycam.pics());
 
-  // First log to micro sd, then sms and final rtty
-  File flight_data = SD.open("flight.txt", FILE_WRITE);
-
-  if (flight_data) {
-    flight_data.println(data);
-    flight_data.close();
+  /* First log to micro sd, then sms and final rtty */
+  if (!sdlog.log(data)) {
+    Serial.println("Write failed.");
   }
+
+  Serial.println(freeRam());
   Serial.println(data);
-  //Serial.println(gsm.send_sms("31611111111", data));
-  //rtty.send(data);
+  rtty.send(data);
+  Serial.println(freeRam());
+  //gsm.send_sms("31611111111", data);
 
   s_id++;
-  if (flycam.is_recording())
+  if (flycam.is_recording()) {
     flycam.add_record_time(8);
+  }
   delay(2000);
+}
+
+int freeRam () {
+  extern int __heap_start, *__brkval; 
+  int v; 
+  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 }
 

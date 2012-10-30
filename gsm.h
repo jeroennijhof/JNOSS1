@@ -14,12 +14,12 @@
 #define hexdump_a(byte) num_to_char( last_four(byte))
 #define hexdump_b(byte) num_to_char(first_four(byte))
 
-#define BUFSIZE 75
+#define BUFSIZE 32
 
 
 class GSM : public SoftwareSerial {
   public:
-    GSM(int rx_pin, int tx_pin);
+    GSM(uint8_t rx_pin, uint8_t tx_pin);
     boolean send_sms(char *number, char *sms);
     char *get_signal();
     char *get_battery();

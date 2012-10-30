@@ -4,26 +4,24 @@
 #include <Arduino.h>
 #include <Servo.h>
 
-class FlyCam {  
+class FlyCam: public Servo {
   public:
-    FlyCam(int pin);
-    void set_mode(int mode);
-    int mode();
+    FlyCam();
+    void set_mode(uint8_t mode);
+    uint8_t mode();
     void record();
     boolean is_recording();
-    void add_record_time(int seconds);
-    int record_time();
-    int total_record_time();
-    int total_pics();
-    int MODE_CAM;
-    int MODE_SER;
-    int MODE_PIC;
+    void add_record_time(uint8_t seconds);
+    uint16_t record_time();
+    uint16_t pics();
+    uint8_t MODE_CAM;
+    uint8_t MODE_SER;
+    uint8_t MODE_PIC;
   private:
-    int _mode;
+    uint8_t _mode;
     boolean _recording;
-    int _record_time; // in seconds
-    int _total_record_time; // in seconds
-    int _total_pics;
+    uint16_t _record_time; // in seconds
+    uint16_t _pics;
 };
 
 #endif

@@ -21,7 +21,7 @@
 UNO::UNO(void) {
 }
 
-int UNO::get_bufsize() {
+uint8_t UNO::get_bufsize() {
   return BUFSIZE;
 }
 
@@ -34,7 +34,7 @@ char *UNO::float_to_str(float value) {
   return str;
 }
 
-char *UNO::get_voltage(int pin, int multiply) {
+char *UNO::get_voltage(uint8_t pin, uint8_t multiply) {
   static char voltage[BUFSIZE];
 
   delay(100);
@@ -43,7 +43,7 @@ char *UNO::get_voltage(int pin, int multiply) {
   return voltage;
 }
 
-char *UNO::get_temp(int pin, boolean fahrenheit) {
+char *UNO::get_temp(uint8_t pin, boolean fahrenheit) {
   static char temp[BUFSIZE];
   float value = 0;
 
