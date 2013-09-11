@@ -50,9 +50,7 @@ FlyCam flycam;
  
 void setup() {                
   Serial.begin(9600);
-  Serial.println("JNOSS1 initializing...press key");
-  while (!Serial.available()){}
-  Serial.println(freeRam());
+  Serial.println("JNOSS1 initializing...");
   
   gps.start();
   Serial.println("gps initialized.");
@@ -72,22 +70,11 @@ void setup() {
 }
  
 void loop() {
-  Serial.println(freeRam());
   /* start filming */
   if (flycam.mode() == flycam.MODE_CAM && !flycam.is_recording()) {
     flycam.record(); // Start filming
   }
 
-  /* stop filming after 30 seconds and make pictures */
-  if (flycam.is_recording() && (s_id % 10) == 0) {
-    flycam.record(); // Stop filming
-    flycam.set_mode(flycam.MODE_PIC);
-    flycam.record(); // Take picture
-    flycam.record(); // Take another picture
-    flycam.set_mode(flycam.MODE_CAM);
-  }
-
-  Serial.println(freeRam());
   /* get main battery voltage */
   char battery[uno.get_bufsize()];
   snprintf(battery, uno.get_bufsize(), "%s", uno.get_voltage(BATT, 3));
@@ -98,35 +85,40 @@ void loop() {
 
   /* get external temperature */
   char temp_extern[uno.get_bufsize()];
-  snprintf(temp_extern, uno.get_bufsize(), "%s", uno.get_temp(TMP36, true));
+  snprintf(temp_extern, uno.get_bufsize(), "%s", uno.get_temp(TMP36, false));
 
-  Serial.println(freeRam());
   /* $$callsign,sentence_id,(time,latitude,longitude,altitude,fix,speed,ascentrate,satellites),
-   *     battery,temperature_internal,temperature_external,gsm_signal,gsm_battery,cam_record_time,cam_pics*CHECKSUM\n
+   *     battery,temperature_internal,temperature_external,gsm_signal,gsm_charging,gsm_battery,cam_record_time,cam_pics*CHECKSUM\n
    */
   snprintf(data, DATASIZE, "$$jnoss1,%d,%s,%s,%s,%s,%s,%s,%d,%d", s_id, gps.get_info(), battery, temp_intern, temp_extern, gsm.get_signal(), gsm.get_battery(), flycam.record_time(), flycam.pics());
 
-  /* First log to micro sd, then sms and final rtty */
+  /* First log to micro sd, then rtty and final sms */
   if (!sdlog.log(data)) {
     Serial.println("Write failed.");
   }
 
-  Serial.println(freeRam());
-  Serial.println(data);
   rtty.send(data);
-  Serial.println(freeRam());
-  //gsm.send_sms("31611111111", data);
+  Serial.println(data);
+  
+  if (flycam.is_recording()) {
+    // every cicle takes about 17 seconds
+    flycam.add_record_time(17);
+  }
+
+  /* stop filming after 3 minutes and make pictures */
+  if (flycam.is_recording() && (flycam.record_time() % 187) == 0) {
+    flycam.record(); // Stop filming
+    flycam.set_mode(flycam.MODE_PIC);
+    flycam.record(); // Take picture
+    flycam.record(); // Take another picture
+    flycam.set_mode(flycam.MODE_CAM);
+  }
+
+  /* send sms every 2 cicles and only when we have signal */
+  if (s_id % 2 == 0 && int(gsm.get_signal()) > 1) {
+    gsm.send_sms("31612345678", data);
+  }
 
   s_id++;
-  if (flycam.is_recording()) {
-    flycam.add_record_time(8);
-  }
-  delay(2000);
-}
-
-int freeRam () {
-  extern int __heap_start, *__brkval; 
-  int v; 
-  return (int) &v - (__brkval == 0 ? (int) &__heap_start : (int) __brkval); 
 }
 

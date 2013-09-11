@@ -49,7 +49,7 @@ char *UNO::get_temp(uint8_t pin, boolean fahrenheit) {
 
   delay(100);
   if (fahrenheit) {
-    value = ((analogRead(pin) * PUVOLT * 100) - 32) * (5.0/9.0);
+    value = ((analogRead(pin) * PUVOLT * 100) - 32) / 1.8;
   } else {
     value = analogRead(pin) * PUVOLT * 100;
   }

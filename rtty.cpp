@@ -28,6 +28,9 @@ RTTY::RTTY(uint8_t pin) {
 void RTTY::send(const char *data) {
   char c;
   uint8_t i = 0;
+  char chksum_str[6];
+
+  snprintf(chksum_str, 6, "*%04X\n", crc16_chksum(data));
 
   c = *data++;
   while (c != '\0') {
@@ -36,14 +39,15 @@ void RTTY::send(const char *data) {
   }
   
   // Send chksum
-  char chksum_str[6];
-  snprintf(chksum_str, 6, "*%04X\n", crc16_chksum(data));
   c = chksum_str[i];
   while (c != '\0') {
     send_byte(c);
     c = chksum_str[++i];
   }
-} 
+  
+  // Send return
+  send_byte('\n');
+}
  
 void RTTY::send_byte(char c) {
   uint8_t i;
@@ -73,7 +77,7 @@ void RTTY::send_bit(uint8_t bit) {
   }
  
   //delayMicroseconds(3333); // 300 baud
-  delayMicroseconds(13325); // 75 baud
+  delayMicroseconds(13333); // 75 baud
   //delayMicroseconds(10000); // base delay for 45/50
   //delayMicroseconds(10000); // 50 baud
   //delayMicroseconds(12222); // 45 baud

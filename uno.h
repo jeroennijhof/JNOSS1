@@ -4,7 +4,7 @@
 #include <Arduino.h>
 
 #define BUFSIZE 16
-#define PUVOLT 0.0048828125
+#define PUVOLT 0.0048
 
 class UNO {
   public:
