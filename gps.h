@@ -13,7 +13,7 @@ class GPS: public SoftwareSerial {
   private:
     void send_ubx(uint8_t *msg, uint8_t len);
     boolean get_ubx_ack(uint8_t *msg);
-    char *get_pubx_item(uint8_t itemnr, char *pubx);
+    char *get_pubx_item(uint8_t itemnr, char *pubx, char *dflt);
 };
 
 #endif

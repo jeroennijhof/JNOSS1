@@ -23,7 +23,7 @@
 #define GSMTX 6
 #define MICROSD 8
 #define CAM 9
-#define TMP36 0
+#define MCP97 0
 #define LM35 1
 #define BATT 2
 
@@ -70,6 +70,11 @@ void setup() {
 }
  
 void loop() {
+  /* wait for cam startup during first run */
+  if (s_id == 0) {
+    delay(15000);
+  } 
+  
   /* start filming */
   if (flycam.mode() == flycam.MODE_CAM && !flycam.is_recording()) {
     flycam.record(); // Start filming
@@ -85,7 +90,7 @@ void loop() {
 
   /* get external temperature */
   char temp_extern[uno.get_bufsize()];
-  snprintf(temp_extern, uno.get_bufsize(), "%s", uno.get_temp(TMP36, false));
+  snprintf(temp_extern, uno.get_bufsize(), "%s", uno.get_temp(MCP97, true));
 
   /* $$callsign,sentence_id,(time,latitude,longitude,altitude,fix,speed,ascentrate,satellites),
    *     battery,temperature_internal,temperature_external,gsm_signal,gsm_charging,gsm_battery,cam_record_time,cam_pics*CHECKSUM\n
@@ -101,12 +106,12 @@ void loop() {
   Serial.println(data);
   
   if (flycam.is_recording()) {
-    // every cicle takes about 17 seconds
-    flycam.add_record_time(17);
+    // every cicle takes about 16 seconds
+    flycam.add_record_time(16);
   }
 
   /* stop filming after 3 minutes and make pictures */
-  if (flycam.is_recording() && (flycam.record_time() % 187) == 0) {
+  if (flycam.is_recording() && (flycam.record_time() % 192) == 0) {
     flycam.record(); // Stop filming
     flycam.set_mode(flycam.MODE_PIC);
     flycam.record(); // Take picture
@@ -114,9 +119,9 @@ void loop() {
     flycam.set_mode(flycam.MODE_CAM);
   }
 
-  /* send sms every 2 cicles and only when we have signal */
-  if (s_id % 2 == 0 && int(gsm.get_signal()) > 1) {
-    gsm.send_sms("31612345678", data);
+  /* send sms every 4 cicles and only when we have signal */
+  if (s_id % 4 == 0 && atoi(gsm.get_signal()) > 1) {
+    gsm.send_sms("31621284388", data);
   }
 
   s_id++;

@@ -26,7 +26,7 @@ GPS::GPS(uint8_t rx_pin, uint8_t tx_pin):SoftwareSerial(rx_pin, tx_pin) {
 void GPS::start() {
   // Wait for uBlox to become ready
   delay(1500);
-
+  
   // Disable all NMEA messages, using $PUBX only
   println("$PUBX,40,GLL,0,0,0,0*5C");
   println("$PUBX,40,GGA,0,0,0,0*5A");
@@ -56,7 +56,7 @@ char *GPS::get_info() {
     flush();
 
   println("$PUBX,00*33");
-  delay(1500);  
+  delay(1200);  
 
   while (available()) {
     if (idx == (BUFSIZE-1)) {
@@ -72,21 +72,21 @@ char *GPS::get_info() {
    * convert to:
    *    time,latitude,longitude,altitude,fix,speed,ascentrate,satellites
    */
-  snprintf(info, 7, "%s", get_pubx_item(2, buffer));
+  snprintf(info, 7, "%s", get_pubx_item(2, buffer, "0.0"));
   strncat(info, ",", 1);
-  strncat(info, get_pubx_item(3, buffer), 12);
+  strncat(info, get_pubx_item(3, buffer, "0.0"), 12);
   strncat(info, ",", 1);
-  strncat(info, get_pubx_item(5, buffer), 12);
+  strncat(info, get_pubx_item(5, buffer, "0.0"), 12);
   strncat(info, ",", 1);
-  strncat(info, get_pubx_item(7, buffer), 12);
+  strncat(info, get_pubx_item(7, buffer, "0.0"), 12);
   strncat(info, ",", 1);
-  strncat(info, get_pubx_item(8, buffer), 2);
+  strncat(info, get_pubx_item(8, buffer, "NF"), 2);
   strncat(info, ",", 1);
-  strncat(info, get_pubx_item(11, buffer), 7);
+  strncat(info, get_pubx_item(11, buffer, "0.0"), 7);
   strncat(info, ",", 1);
-  strncat(info, get_pubx_item(13, buffer), 7);
+  strncat(info, get_pubx_item(13, buffer, "0.0"), 7);
   strncat(info, ",", 1);
-  strncat(info, get_pubx_item(18, buffer), 2);
+  strncat(info, get_pubx_item(18, buffer, "0"), 2);
 
   return info;
 }
@@ -144,7 +144,7 @@ boolean GPS::get_ubx_ack(uint8_t *msg) {
   }
 }
 
-char *GPS::get_pubx_item(uint8_t itemnr, char *pubx) {
+char *GPS::get_pubx_item(uint8_t itemnr, char *pubx, char *dflt) {
   static char item[BUFSIZE] = "";
   char buffer[BUFSIZE] = "";
   char *ptr;
@@ -157,6 +157,10 @@ char *GPS::get_pubx_item(uint8_t itemnr, char *pubx) {
   }
   ptr = strstr(buffer, ",");
   snprintf(item, strlen(buffer)-strlen(ptr)+1, "%s", buffer);
+  
+  if (strlen(item) == 0) {
+    snprintf(item, strlen(dflt)+1, "%s", dflt);
+  }
 
   return item;
 }
